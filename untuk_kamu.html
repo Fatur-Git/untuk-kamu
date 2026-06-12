@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Untuk Kamu ♥</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #000010;
+    color: #fff;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ===== LOCK SCREEN ===== */
+  #lock-screen {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #0a0020 0%, #000010 60%, #000005 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+  #lock-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .lock-title {
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    color: #ffb3c6;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-shadow: 0 0 20px rgba(255,100,150,0.5);
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  .lock-subtitle {
+    font-size: clamp(0.75rem, 2.5vw, 0.95rem);
+    color: #aa88aa;
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+  }
+
+  .qr-wrapper {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .heart-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #qr-container {
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    z-index: 5;
+    box-shadow: 0 0 30px rgba(255, 80, 120, 0.4), 0 0 60px rgba(255, 80, 120, 0.15);
+  }
+
+  .scan-hint {
+    margin-top: 24px;
+    font-size: 0.8rem;
+    color: #886688;
+    letter-spacing: 1px;
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  .floating-hearts-lock {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* ===== MAIN PAGE ===== */
+  #main-page {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+  }
+  #main-page.visible { display: block; }
+
+  #star-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  #stars-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: all;
+  }
+
+  .star-photo {
+    position: absolute;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .star-photo:hover { transform: scale(1.4); }
+
+  .star-dot {
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, rgba(255,255,180,0.8) 40%, transparent 70%);
+    box-shadow: 0 0 6px 2px rgba(255,255,200,0.6);
+    animation: twinkle var(--tw, 3s) ease-in-out infinite;
+    animation-delay: var(--td, 0s);
+  }
+
+  /* ===== PHOTO POPUP ===== */
+  #photo-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,10,0.9);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  #photo-popup.show { display: flex; }
+
+  .popup-inner {
+    position: relative;
+    width: min(92vw, 640px);
+    max-height: 90vh;
+    background: rgba(20,0,40,0.97);
+    border: 1px solid rgba(255,100,150,0.4);
+    border-radius: 20px;
+    padding: 20px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(255,60,120,0.3);
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  #popup-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* ===== VIDEO POPUP ===== */
+  #video-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,10,0.92);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  #video-popup.show { display: flex; }
+
+  .video-popup-inner {
+    position: relative;
+    width: min(94vw, 680px);
+    max-height: 92vh;
+    background: rgba(15,0,35,0.98);
+    border: 1px solid rgba(255,100,150,0.45);
+    border-radius: 24px;
+    padding: 22px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    box-shadow: 0 0 80px rgba(255,60,120,0.35), 0 0 150px rgba(180,40,200,0.15);
+    animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  /* Video frame wrapper — same love-frame style as photo */
+  .video-frame-wrapper {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+    padding: 3px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ff4080, #ff80d0, #c040ff, #ff80d0, #ff4080);
+    background-size: 300% 300%;
+    animation: framePulse 3s ease-in-out infinite, gradientFlow 5s ease infinite;
+    margin-top: 10px;
+    align-self: center;
+  }
+
+  .video-frame-inner {
+    border-radius: 13px;
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .video-frame-inner video {
+    display: block;
+    max-width: calc(94vw - 60px);
+    max-height: calc(92vh - 210px);
+    width: 100%;
+    border-radius: 13px;
+    object-fit: contain;
+  }
+
+  /* Heart corners — shared with photo frame */
+  .corner {
+    position: absolute;
+    z-index: 20;
+    color: #fff;
+    text-shadow: 0 0 8px #ff4080, 0 0 18px #ff4080, 0 0 30px #c040ff;
+    animation: heartbeat 1.4s ease-in-out infinite;
+    line-height: 1;
+    pointer-events: none;
+    font-size: 1.3rem;
+  }
+  .corner.tl { top: -12px; left: -7px;                                animation-delay: 0.0s; }
+  .corner.tm { top: -12px; left: 50%; transform: translateX(-50%); font-size: 1rem; animation-delay: 0.2s; }
+  .corner.tr { top: -12px; right: -7px;                               animation-delay: 0.4s; }
+  .corner.bl { bottom: -12px; left: -7px;                             animation-delay: 0.6s; }
+  .corner.bm { bottom: -12px; left: 50%; transform: translateX(-50%); font-size: 1rem; animation-delay: 0.8s; }
+  .corner.br { bottom: -12px; right: -7px;                            animation-delay: 1.0s; }
+
+  /* Sweet message box under video */
+  .sweet-message-box {
+    margin-top: 18px;
+    width: 100%;
+    background: rgba(255,60,120,0.08);
+    border: 1px solid rgba(255,100,150,0.25);
+    border-radius: 16px;
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .sweet-message-title {
+    font-size: 1.05rem;
+    color: #ffb3c6;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 12px rgba(255,80,120,0.4);
+  }
+  .sweet-message-text {
+    font-size: 0.88rem;
+    color: #cc99bb;
+    font-style: italic;
+    line-height: 1.7;
+  }
+  .sweet-message-dots {
+    margin-top: 10px;
+    font-size: 1.1rem;
+    color: #ff8099;
+    letter-spacing: 4px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .video-popup-close {
+    position: absolute;
+    top: 10px; right: 14px;
+    background: rgba(255,60,100,0.15);
+    border: 1px solid rgba(255,80,120,0.4);
+    color: #ff8099; font-size: 1.3rem;
+    cursor: pointer; line-height: 1;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .video-popup-close:hover { background: rgba(255,60,100,0.4); color: #fff; }
+
+  /* ╔══════════════════════════════════════════════════════════╗
+     ║            FRAME LOVE - CSS (semua bintang)             ║
+     ╚══════════════════════════════════════════════════════════╝ */
+  .photo-frame-wrapper {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+    padding: 3px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ff4080, #ff80d0, #c040ff, #ff80d0, #ff4080);
+    background-size: 300% 300%;
+    animation: framePulse 3s ease-in-out infinite, gradientFlow 5s ease infinite;
+    margin-top: 10px;
+    align-self: center;
+  }
+
+  .photo-frame-inner {
+    border-radius: 13px;
+    overflow: hidden;
+    background: rgba(10, 0, 25, 0.98);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .photo-frame-wrapper img {
+    display: block;
+    max-width:  calc(92vw - 60px);
+    max-height: calc(90vh - 175px);
+    object-fit: contain;
+    border-radius: 13px;
+  }
+
+  .photo-placeholder-box {
+    width:  260px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 13px;
+  }
+  .placeholder-icon {
+    font-size: 2.5rem;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .placeholder-title {
+    font-size: 1.05rem;
+    color: #ffb3c6;
+    font-weight: bold;
+    text-align: center;
+  }
+  .placeholder-msg {
+    font-size: 0.8rem;
+    color: #aa88aa;
+    text-align: center;
+    font-style: italic;
+    padding: 0 10px;
+    line-height: 1.5;
+  }
+
+  @keyframes framePulse {
+    0%,100% { box-shadow: 0 0 18px rgba(255,60,120,0.5), 0 0 40px rgba(255,60,120,0.2); }
+    50%      { box-shadow: 0 0 35px rgba(255,60,120,0.8), 0 0 70px rgba(200,40,200,0.4); }
+  }
+  @keyframes gradientFlow {
+    0%   { background-position: 0%   50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0%   50%; }
+  }
+
+  .popup-caption {
+    margin-top: 10px;
+    font-size: 1rem;
+    color: #ffb3c6;
+    text-align: center;
+    font-style: italic;
+  }
+  .popup-close {
+    position: absolute;
+    top: 10px; right: 14px;
+    background: rgba(255,60,100,0.15);
+    border: 1px solid rgba(255,80,120,0.4);
+    color: #ff8099; font-size: 1.3rem;
+    cursor: pointer; line-height: 1;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .popup-close:hover { background: rgba(255,60,100,0.4); color: #fff; }
+
+  .upload-hint {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: #886688;
+    text-align: center;
+  }
+  .upload-btn {
+    margin-top: 10px;
+    background: rgba(255,80,120,0.2);
+    border: 1px solid rgba(255,80,120,0.4);
+    color: #ffb3c6;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+  }
+  .upload-btn:hover { background: rgba(255,80,120,0.4); }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    pointer-events: none;
+  }
+  .hero-title {
+    font-size: clamp(2rem, 8vw, 4.5rem);
+    color: #ffb3c6;
+    text-shadow: 0 0 30px rgba(255,100,150,0.6), 0 0 60px rgba(255,60,120,0.3);
+    letter-spacing: 2px;
+    line-height: 1.2;
+    animation: float 6s ease-in-out infinite;
+  }
+  .hero-subtitle {
+    margin-top: 16px;
+    font-size: clamp(0.9rem, 3vw, 1.3rem);
+    color: #cc99bb;
+    letter-spacing: 1px;
+    font-style: italic;
+  }
+
+  /* ===== CLICKABLE HEART ===== */
+  .heart-big {
+    font-size: clamp(3rem, 10vw, 6rem);
+    animation: heartbeat 1.4s ease-in-out infinite;
+    display: block;
+    margin-top: 20px;
+    cursor: pointer;
+    pointer-events: all;          /* override hero's pointer-events:none */
+    transition: filter 0.2s, transform 0.15s;
+    position: relative;
+    z-index: 15;
+    user-select: none;
+    color: #f82068; 
+  }
+  .heart-big:hover {
+    filter: drop-shadow(0 0 18px rgba(255,60,120,0.9)) drop-shadow(0 0 40px rgba(220,40,180,0.5));
+    transform: scale(1.15);
+  }
+  .heart-big:active { transform: scale(0.95); }
+
+  /* Tooltip hint on heart */
+  .heart-hint {
+    font-size: 0.72rem;
+    color: #ff8099;
+    letter-spacing: 1px;
+    animation: blink 2s ease-in-out infinite;
+    margin-top: -6px;
+    pointer-events: none;
+  }
+
+  .star-hint {
+    margin-top: 30px;
+    font-size: 0.85rem;
+    color: #886699;
+    letter-spacing: 1px;
+    animation: blink 2.5s ease-in-out infinite;
+  }
+
+  /* Music bar */
+  #music-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: rgba(10,0,30,0.85);
+    border: 1px solid rgba(255,100,150,0.3);
+    border-radius: 50px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(255,60,120,0.2);
+    pointer-events: all;
+  }
+  .music-icon { font-size: 1.2rem; animation: spin 4s linear infinite; }
+  .music-title { font-size: 0.8rem; color: #ffb3c6; letter-spacing: 0.5px; white-space: nowrap; }
+  .music-artist { font-size: 0.7rem; color: #886688; }
+  #music-toggle {
+    background: none; border: 1px solid rgba(255,100,150,0.4);
+    color: #ffb3c6; border-radius: 50%; width: 32px; height: 32px;
+    cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  #music-toggle:hover { background: rgba(255,80,120,0.3); }
+
+  .shoot {
+    position: fixed;
+    width: 2px; height: 2px;
+    background: linear-gradient(to right, #fff, transparent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 2;
+    animation: shoot linear forwards;
+  }
+  .nebula {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  @keyframes blink { 0%,100%{opacity:0.5} 50%{opacity:1} }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+  @keyframes heartbeat {
+    0%,100%{transform:scale(1)}
+    14%{transform:scale(1.15)}
+    28%{transform:scale(1)}
+    42%{transform:scale(1.1)}
+    56%{transform:scale(1)}
+  }
+  @keyframes twinkle { 0%,100%{opacity:0.5;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
+  @keyframes popIn { from{opacity:0;transform:scale(0.7)} to{opacity:1;transform:scale(1)} }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes shoot {
+    0%{opacity:1;width:120px;transform:translate(0,0) rotate(var(--ang))}
+    100%{opacity:0;width:0;transform:translate(300px,100px) rotate(var(--ang))}
+  }
+  @keyframes heartFloat {
+    0%{transform:translateY(0) scale(1);opacity:0.8}
+    100%{transform:translateY(-100vh) scale(0.3);opacity:0}
+  }
+
+  /* Scrollbar inside video popup */
+  .video-popup-inner::-webkit-scrollbar { width: 4px; }
+  .video-popup-inner::-webkit-scrollbar-track { background: transparent; }
+  .video-popup-inner::-webkit-scrollbar-thumb { background: rgba(255,80,120,0.3); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="nebula" style="width:600px;height:600px;background:#3d0070;top:-100px;left:-100px;"></div>
+<div class="nebula" style="width:500px;height:500px;background:#00306d;top:30%;right:-100px;"></div>
+<div class="nebula" style="width:400px;height:400px;background:#6d0030;bottom:-50px;left:30%;"></div>
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <div class="floating-hearts-lock" id="float-hearts-lock"></div>
+  <div class="lock-title">✦ Khusus Untuk Kamu ✦</div>
+  <div class="lock-subtitle">Scan barcode cinta di bawah ini</div>
+  <div class="qr-wrapper">
+    <svg style="position:absolute;inset:-15px;width:calc(100% + 30px);height:calc(100% + 30px);z-index:3;pointer-events:none;" viewBox="0 0 250 250">
+      <defs>
+        <path id="heartPath" d="M125,200 C90,170 30,140 30,90 C30,55 55,35 85,35 C100,35 115,43 125,55 C135,43 150,35 165,35 C195,35 220,55 220,90 C220,140 160,170 125,200 Z"/>
+        <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ff4080"/>
+          <stop offset="50%" stop-color="#ff80d0"/>
+          <stop offset="100%" stop-color="#c040ff"/>
+        </linearGradient>
+      </defs>
+      <use href="#heartPath" fill="none" stroke="url(#hg)" stroke-width="3" opacity="0.7">
+        <animate attributeName="stroke-dasharray" from="0 1000" to="700 0" dur="2s" fill="freeze"/>
+        <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.5s" repeatCount="indefinite"/>
+      </use>
+      <text font-size="14" fill="#ff6090" opacity="0.6">
+        <textPath href="#heartPath" startOffset="0%">♥ · ♥ · ♥ · ♥ · ♥ · ♥ · ♥ · ♥ · </textPath>
+      </text>
+    </svg>
+    <div id="qr-container">
+      <div id="qrcode"></div>
+    </div>
+  </div>
+  <div class="scan-hint">♥ Scan dengan kamera HP kamu ♥</div>
+  <button onclick="unlockPage()" style="margin-top:20px;background:rgba(255,80,120,0.2);border:1px solid rgba(255,100,150,0.5);color:#ffb3c6;padding:10px 28px;border-radius:30px;cursor:pointer;font-size:0.9rem;letter-spacing:1px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,80,120,0.4)'" onmouseout="this.style.background='rgba(255,80,120,0.2)'">
+    ♥ Buka Kejutan ♥
+  </button>
+</div>
+
+<!-- MAIN PAGE -->
+<div id="main-page">
+  <canvas id="star-canvas"></canvas>
+  <div id="stars-layer"></div>
+  <div class="hero">
+    <div class="hero-title">Kamu Adalah<br>Bintangku ✨</div>
+    <div class="hero-subtitle">Di antara jutaan bintang di langit malam,<br>kamu yang paling bersinar untukku.</div>
+    <!-- CLICKABLE HEART -->
+    <span class="heart-big" onclick="openVideoPopup()" title="Klik untuk kejutan spesial ♥">♥</span>
+    <div class="heart-hint">✦ klik untuk kejutan spesial ✦</div>
+    <div class="star-hint">✦ Klik bintang-bintang untuk kejutan ✦</div>
+  </div>
+  <div id="music-bar">
+    <span class="music-icon">♫</span>
+    <div>
+      <div class="music-title">Risk It All</div>
+      <div class="music-artist">Bruno Mars</div>
+    </div>
+    <button id="music-toggle" onclick="toggleMusic()" title="Play/Pause">▶</button>
+  </div>
+</div>
+
+<!-- Photo Popup -->
+<div id="photo-popup" onclick="closePopup(event)">
+  <div class="popup-inner" id="popup-inner">
+    <button class="popup-close" onclick="closePopup()">✕</button>
+    <div id="popup-content" style="display:flex;flex-direction:column;align-items:center;width:100%;"></div>
+  </div>
+</div>
+
+<!-- ===== VIDEO POPUP ===== -->
+<div id="video-popup" onclick="closeVideoPopup(event)">
+  <div class="video-popup-inner" id="video-popup-inner">
+    <button class="video-popup-close" onclick="closeVideoPopup()">✕</button>
+
+    <!-- Frame love untuk video -->
+    <div class="video-frame-wrapper">
+      <span class="corner tl">♥</span>
+      <span class="corner tm">♥</span>
+      <span class="corner tr">♥</span>
+      <span class="corner bl">♥</span>
+      <span class="corner bm">♥</span>
+      <span class="corner br">♥</span>
+      <div class="video-frame-inner">
+        <video id="popup-video" controls playsinline>
+          <source src="pertemuan pertama.mp4" type="video/mp4">
+          Browser kamu tidak mendukung video.
+        </video>
+      </div>
+    </div>
+
+    <!-- Kata-kata manis pertemuan pertama -->
+    <div class="sweet-message-box">
+      <div class="sweet-message-title">♥ Pertemuan Pertama Kita ♥</div>
+      <div class="sweet-message-text">
+        Hari itu, tanpa aa sadari, sesuatu yang luar biasa sedang terjadi.<br><br>
+        Pertama kali melihat kamu... aa tidak bisa berpaling. Ada sesuatu dari caramu tersenyum,
+        cara matamu berbinar, yang langsung membuat dunia terasa lebih hangat.<br><br>
+        Mungkin kamu tidak tahu, tapi sejak hari itu — kamu sudah menempati ruang
+        yang paling istimewa di hati aa.<br><br>
+        <em>Terima kasih sudah hadir, dan terima kasih sudah membuat aa percaya
+        bahwa hal-hal indah itu nyata.</em>
+      </div>
+      <div class="sweet-message-dots">♥ · ♥ · ♥</div>
+    </div>
+
+  </div>
+</div>
+
+<audio id="bgMusic" loop preload="auto">
+  <source src="Risk it All -Bruno Mars (s l o w e d).mp3" type="audio/mpeg">
+</audio>
+<input type="file" id="photo-upload" accept="image/*" style="display:none">
+
+<script>
+const CONFIG = {
+  websiteURL: "https://fatur-git.github.io/untuk-kamu/",
+  starMessages: [
+    { emoji: "💫", title: "Hari Pertama Kita", message: "Kamu tersenyum dan dunia aa berubah selamanya... Momen itu tak akan pernah aa lupakan.", photo: "hari-pertama.jpg" },
+    { emoji: "🌟", title: "Kamu Membuat aa Bahagia", message: "Setiap hari bersamamu terasa seperti hadiah yang tak ternilai harganya.", photo: "ber dua.jpg" },
+    { emoji: "⭐", title: "Favorit aa", message: "Dari sekian banyak hal di dunia ini, kamulah yang paling aa sukai.", photo: "love.jpg" },
+    { emoji: "✨", title: "Kurindukanmu", message: "Bahkan di saat kita bersama pun, aa sudah takut akan saat-saat kita berjarak.", photo: "mimpi.jpg" },
+    { emoji: "🌠", title: "Mimpi aa", message: "Aa ingin menghabiskan setiap matahari terbenam bersamamu, selamanya.", photo: "senja.jpg" },
+    { emoji: "💖", title: "Rahasia Kecil", message: "Kamu tidak tahu betapa sering aa senyum-senyum sendiri memikirkan kamu, melihat foto kamu, melihat senyuman kamu.", photo: "rahasia.jpg" },
+    { emoji: "🌙", title: "Malam Ini", message: "Di bawah langit yang sama ini, aa memikirkanmu... selalu.", photo: "langit.jpg" },
+    { emoji: "💎", title: "Kamu Segalanya", message: "Bukan hanya bintang - kamu adalah seluruh galaksi aa.", photo: "segala.jpg" },
+    { emoji: "🔮", title: "Masa Depan", message: "Aa memilih kamu. Hari ini, besok, dan selamanya.", photo: "rindu.jpg" },
+    { emoji: "🫶", title: "Cinta Tanpa Syarat", message: "Aa mencintaimu bukan karena siapa diri kamu di mata dunia, tapi karena kamu sempurna untuk aa.", photo: "cinta.jpg" },
+    { emoji: "🌺", title: "Kehadiranmu", message: "Dunia akan terasa lebih indah karena ada kamu di dalamnya.", photo: "hadir.jpg" },
+    { emoji: "🦋", title: "Perasaan aa", message: "Setiap kali kamu berada dekat dengan aa, ada kupu-kupu yang beterbangan di hati aa.", photo: "dekat.jpg" },
+  ],
+};
+
+const photoStore = {};
+let currentStarIndex = -1;
+
+/* ===== VIDEO POPUP ===== */
+function openVideoPopup() {
+  const popup = document.getElementById('video-popup');
+  const video = document.getElementById('popup-video');
+  popup.classList.add('show');
+  // Pause background music while video plays
+  if (musicPlaying) {
+    audio.pause();
+    document.getElementById('music-toggle').textContent = '▶';
+    musicPlaying = false;
+    _pausedForVideo = true;
+  }
+  // Try to play video
+  video.currentTime = 0;
+  video.play().catch(() => {});
+}
+
+let _pausedForVideo = false;
+
+function closeVideoPopup(e) {
+  if (e && e.target !== document.getElementById('video-popup')) return;
+  const popup = document.getElementById('video-popup');
+  const video = document.getElementById('popup-video');
+  video.pause();
+  popup.classList.remove('show');
+  // Resume music if it was paused for the video
+  if (_pausedForVideo) {
+    _pausedForVideo = false;
+    audio.play().then(() => {
+      musicPlaying = true;
+      document.getElementById('music-toggle').textContent = '⏸';
+    }).catch(() => {});
+  }
+}
+
+// Close video popup with ✕ button (no event arg)
+document.querySelector('.video-popup-close').addEventListener('click', function(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('video-popup');
+  const video = document.getElementById('popup-video');
+  video.pause();
+  popup.classList.remove('show');
+  if (_pausedForVideo) {
+    _pausedForVideo = false;
+    audio.play().then(() => {
+      musicPlaying = true;
+      document.getElementById('music-toggle').textContent = '⏸';
+    }).catch(() => {});
+  }
+});
+
+/* ===== QR ===== */
+function generateQR() {
+  const el = document.getElementById('qrcode');
+  new QRCode(el, {
+    text: CONFIG.websiteURL,
+    width: 200, height: 200,
+    colorDark: "#ff4080",
+    colorLight: "#000010",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+function unlockPage() {
+  document.getElementById('lock-screen').classList.add('hidden');
+  document.getElementById('main-page').classList.add('visible');
+  initStarCanvas();
+  placePhotoStars();
+  spawnShootingStars();
+  tryAutoplay();
+  setTimeout(spawnFloatingHearts, 1000);
+}
+
+function checkURLAccess() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('buka') === 'cinta' || params.get('open') === '1') {
+    setTimeout(unlockPage, 500);
+  }
+}
+
+function initStarCanvas() {
+  const canvas = document.getElementById('star-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const stars = [];
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.3,
+      a: Math.random(),
+      da: (Math.random() * 0.008 + 0.003) * (Math.random() < 0.5 ? 1 : -1),
+      color: ['#ffffff','#ffe8f0','#e8e8ff','#ffffd0'][Math.floor(Math.random()*4)]
+    });
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s => {
+      s.a += s.da;
+      if (s.a <= 0 || s.a >= 1) s.da *= -1;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, s.a));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = s.color;
+      ctx.fill();
+      ctx.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+}
+
+function placePhotoStars() {
+  const layer = document.getElementById('stars-layer');
+  layer.innerHTML = '';
+  const total = CONFIG.starMessages.length;
+  const positions = generateHeartPositions(total);
+  CONFIG.starMessages.forEach((msg, i) => {
+    const pos = positions[i];
+    const size = Math.random() * 14 + 10;
+    const star = document.createElement('div');
+    star.className = 'star-photo';
+    star.style.cssText = `left:${pos.x}%;top:${pos.y}%;width:${size}px;height:${size}px;`;
+    const dot = document.createElement('div');
+    dot.className = 'star-dot';
+    dot.style.cssText = `width:100%;height:100%;--tw:${2+Math.random()*3}s;--td:${Math.random()*3}s;`;
+    dot.title = msg.title;
+    star.appendChild(dot);
+    star.addEventListener('click', () => openStar(i));
+    layer.appendChild(star);
+  });
+}
+
+function generateHeartPositions(n) {
+  const zones = [
+    ...Array(Math.ceil(n*0.3)).fill(0).map(() => ({x:5+Math.random()*90,y:3+Math.random()*20})),
+    ...Array(Math.ceil(n*0.3)).fill(0).map(() => ({x:Math.random()<0.5?2+Math.random()*15:83+Math.random()*15,y:20+Math.random()*60})),
+    ...Array(Math.ceil(n*0.4)).fill(0).map(() => ({x:5+Math.random()*90,y:75+Math.random()*22})),
+  ];
+  return zones.slice(0, n);
+}
+
+function openStar(i) {
+  currentStarIndex = i;
+  const msg = CONFIG.starMessages[i];
+  const popup = document.getElementById('photo-popup');
+  const content = document.getElementById('popup-content');
+  const storedPhoto = photoStore[i];
+  const displayPhoto = storedPhoto || msg.photo;
+
+  const frameContent = displayPhoto
+    ? `<img src="${displayPhoto}" alt="${msg.title}">`
+    : `<div class="photo-placeholder-box">
+         <div class="placeholder-icon">${msg.emoji}</div>
+         <div class="placeholder-title">${msg.title}</div>
+         <div class="placeholder-msg">"${msg.message}"</div>
+         <button class="upload-btn" onclick="triggerUpload(${i})" style="margin-top:6px;">
+           📸 Pilih Foto
+         </button>
+       </div>`;
+
+  const changeBtn = displayPhoto
+    ? `<button class="upload-btn" onclick="triggerUpload(${i})">Ganti Foto 🌟</button>`
+    : '';
+
+  content.innerHTML = `
+    <div class="photo-frame-wrapper">
+      <span class="corner tl">♥</span>
+      <span class="corner tm">♥</span>
+      <span class="corner tr">♥</span>
+      <span class="corner bl">♥</span>
+      <span class="corner bm">♥</span>
+      <span class="corner br">♥</span>
+      <div class="photo-frame-inner">
+        ${frameContent}
+      </div>
+    </div>
+    <div class="popup-caption">${msg.emoji} ${msg.title}</div>
+    <div class="popup-caption" style="color:#aa88aa;font-size:0.82rem;margin-top:4px;">"${msg.message}"</div>
+    ${changeBtn}
+  `;
+
+  popup.classList.add('show');
+}
+
+function triggerUpload(idx) {
+  currentStarIndex = idx;
+  document.getElementById('photo-upload').click();
+}
+
+document.getElementById('photo-upload').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file || currentStarIndex < 0) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoStore[currentStarIndex] = e.target.result;
+    openStar(currentStarIndex);
+  };
+  reader.readAsDataURL(file);
+  this.value = '';
+});
+
+function closePopup(e) {
+  if (!e || e.target === document.getElementById('photo-popup')) {
+    document.getElementById('photo-popup').classList.remove('show');
+  }
+}
+
+let musicPlaying = false;
+const audio = document.getElementById('bgMusic');
+let autoplayUnlocked = false;
+function unlockAutoplay() {
+  if (autoplayUnlocked) return;
+  autoplayUnlocked = true;
+  audio.play().then(() => {
+    musicPlaying = true;
+    document.getElementById('music-toggle').textContent = 'pause';
+  }).catch(() => {
+    musicPlaying = false;
+    document.getElementById('music-toggle').textContent = 'play';
+  });
+  document.removeEventListener('touchstart', unlockAutoplay);
+  document.removeEventListener('click', unlockAutoplay);
+}
+document.addEventListener('touchstart', unlockAutoplay, { once: true });
+document.addEventListener('click', unlockAutoplay, { once: true });
+
+function tryAutoplay() {
+  audio.play().then(() => {
+    musicPlaying = true;
+    autoplayUnlocked = true;
+    document.getElementById('music-toggle').textContent = 'pause';
+  }).catch(() => {
+    musicPlaying = false;
+    document.getElementById('music-toggle').textContent = 'play';
+  });
+}
+
+function toggleMusic() {
+  if (musicPlaying) {
+    audio.pause();
+    musicPlaying = false;
+    document.getElementById('music-toggle').textContent = '▶';
+  } else {
+    audio.play();
+    musicPlaying = true;
+    document.getElementById('music-toggle').textContent = '⏸';
+  }
+}
+
+function spawnShootingStars() {
+  function shoot() {
+    const el = document.createElement('div');
+    el.className = 'shoot';
+    const ang = Math.random() * 30 + 15;
+    el.style.cssText = `left:${Math.random()*80}%;top:${Math.random()*50}%;--ang:${ang}deg;width:${80+Math.random()*120}px;animation-duration:${0.6+Math.random()*0.8}s;opacity:${0.6+Math.random()*0.4};`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+    setTimeout(shoot, 2000 + Math.random() * 4000);
+  }
+  shoot();
+}
+
+function spawnFloatingHearts() {
+  const hearts = ['♥','♡','💖','💗','💕'];
+  function spawn() {
+    const el = document.createElement('div');
+    el.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+    el.style.cssText = `position:fixed;left:${Math.random()*100}%;bottom:0;font-size:${0.8+Math.random()*1.2}rem;color:rgba(255,${80+Math.floor(Math.random()*100)},${100+Math.floor(Math.random()*80)},0.7);animation:heartFloat ${4+Math.random()*4}s ease-in forwards;pointer-events:none;z-index:5;`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 8000);
+    setTimeout(spawn, 800 + Math.random()*1500);
+  }
+  spawn();
+}
+
+function initLockHearts() {
+  const container = document.getElementById('float-hearts-lock');
+  function spawn() {
+    const el = document.createElement('div');
+    el.textContent = ['♥','♡','✦','·'][Math.floor(Math.random()*4)];
+    el.style.cssText = `position:absolute;left:${Math.random()*100}%;top:${100+Math.random()*20}%;font-size:${0.6+Math.random()*1}rem;color:rgba(255,80,120,${0.2+Math.random()*0.4});animation:heartFloat ${5+Math.random()*5}s ease-in forwards;pointer-events:none;`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 10000);
+    setTimeout(spawn, 500 + Math.random()*1000);
+  }
+  spawn();
+}
+
+window.addEventListener('load', () => {
+  generateQR();
+  initLockHearts();
+  checkURLAccess();
+});
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closePopup();
+    // Also close video popup on Escape
+    const vp = document.getElementById('video-popup');
+    if (vp.classList.contains('show')) {
+      document.getElementById('popup-video').pause();
+      vp.classList.remove('show');
+      if (_pausedForVideo) {
+        _pausedForVideo = false;
+        audio.play().then(() => { musicPlaying = true; document.getElementById('music-toggle').textContent = '⏸'; }).catch(()=>{});
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
